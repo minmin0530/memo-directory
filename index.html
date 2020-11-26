@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>名鑑</title>
+        <link rel="stylesheet" href="style.css">
+        <script>
+            window.onload = function() {
+                fetch('/api').then( (res) => res.json() ).then( (data) => {
+                    console.log(data);
+                    let directory = "<h1>名鑑</h1><table><tr><td><h2>名前</h2></td><td><h2>特技</h2></td></tr>";
+                    for (const d of data) {
+                        // directory += "<tr><td><h2>名前</h2></td><td><h2>特技</h2></td></tr>";
+                        directory += "<tr><td>" + d.name + "</td><td>" + d.can + "</td></tr>";
+                    }
+                    directory += "</table>";
+                    document.getElementById("directory").innerHTML = directory;
+                });
+            }
+        </script>
+    </head>
+    <body>
+        <div id="wrapper">
+            <form action="/home" method="post" id="loginform">
+                <h1>login</h1>
+                <table>
+                    <tr>
+                        <td>account</td>
+                        <td><input type="text" id="account" name="account"></td>
+                    </tr>
+                    <tr>
+                        <td>password</td>
+                        <td><input type="password" id="password" name="password"></td>
+                    </tr>
+                    <tr>
+                        <td><button type="submit">login</button></td>
+                    </tr>
+                </table>
+            </form>
+            <div id="directory"></div>
+        </div>
+    </body>
+</html>
