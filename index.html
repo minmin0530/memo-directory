@@ -6,6 +6,27 @@
         <link rel="stylesheet" href="style.css">
         <script>
             window.onload = function() {
+                document.getElementById("searchbutton").addEventListener('click', () => {
+                        fetch('/search', {
+                              method: 'POST', // or 'PUT'
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({search: document.getElementById("search").value}),
+                    }
+                    ).then( (res) => res.json() ).then( (data) => {
+                        console.log(data);
+                        let directory = "<h1>名鑑</h1><table><tr><td><h2>名前</h2></td><td><h2>特技</h2></td></tr>";
+                        for (const d of data) {
+                            // directory += "<tr><td><h2>名前</h2></td><td><h2>特技</h2></td></tr>";
+                            directory += "<tr><td>" + d.name + "</td><td>" + d.can + "</td></tr>";
+                        }
+                        directory += "</table>";
+                        document.getElementById("directory").innerHTML = directory;
+                    });
+
+                }, false);
+
                 fetch('/api').then( (res) => res.json() ).then( (data) => {
                     console.log(data);
                     let directory = "<h1>名鑑</h1><table><tr><td><h2>名前</h2></td><td><h2>特技</h2></td></tr>";
@@ -38,6 +59,14 @@
                 </table>
             </form>
             <div id="directory"></div>
+            <div>
+                <h1>検索</h1>
+                <table>
+                    <tr>
+                        <td><input type="text" id="search" name="search"></td><td><button id="searchbutton">検索</button></td>
+                    </tr>
+                </table>
+            </div>
         </div>
     </body>
 </html>

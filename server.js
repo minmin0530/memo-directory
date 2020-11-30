@@ -28,7 +28,26 @@ app.use(session({
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(bodyParser.json());
 
+const search = async (res, data) => {
+    console.log(data);
+    let client;
+    try {
+      client = await MongoClient.connect(url, connectOption);
+      const db = client.db(dbName);
+      const collection = db.collection('directory');
+  
 
+      reg = new RegExp(data);
+
+
+      const a = await collection.find({can: reg }).toArray();
+      await res.json(a);
+    } catch (error) {
+      console.log(error);
+    } finally {
+//      client.close();
+    }
+}
 const regist = async (res, data) => {
     let client;
     try {
@@ -92,6 +111,11 @@ app.post('/home', (req, res) => {
     } else {
         res.sendFile(__dirname + "/loginerror");
     }
+});
+
+app.post('/search', (req, res) => {
+    console.log(req.body);
+    search(res, req.body.search)
 });
 
 http.listen(8080, () => {
