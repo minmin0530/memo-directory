@@ -1,17 +1,266 @@
 <!DOCTYPE html>
-<html>
+<html lang="ja">
     <head>
-        <meta charset="utf-8">
-        <title>管理</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="dist/cropper.css" charset="UTF-8">
+        <title>Cropper Sample</title>
+        <style>
+            /* 下記は円形にするなら必須です。 */
+            .cropper-view-box,
+            .cropper-face {
+                border-radius: 50%;
+            }
+            /* 下記はできれば必要なスタイルかと思います。（厳密にはスタイルなど必要ありませんが、最低現のスタイルとしてという意味です。） */
+            .cropper-container{
+                width: 100%;
+            }
+            /* 下記は必須ではありません。 Sampleを見やすくするために作成しました。 */
+            main{
+                width: 50%;
+                margin: 0 auto;
+            }
+            main .triming-image{
+                width: 100%;
+                height: 100px;
+                border: dashed #000 1px;
+                cursor: pointer;
+            }
+            main #trimed_image{
+                height: 500px;
+            }
+        </style>
     </head>
     <body>
-        home
-
         <form action="/regist" method="post">
             名前<input type="text" id="name" name="name"><br>
             特技<input type="text" id="can" name="can"><br>
             <button type="submit">登録</button>
         </form>
 
+        <div id="directory"></div>
+
+        <main id="main">
+            <h1>Cropper Sample</h1>
+            <p>ここでのサンプルはTwitterアイコン風に丸型とします。</p>
+            <p>特にCSSに指定はありません。</p>
+            <p>各自で自由に設定してください。</p>
+            <div class="cropper-container">
+                <p><input type="file" id="triming_image" name="triming_image" class="triming-image" required /></p>
+                <p><img src="" alt="トリミング画像" id="trimed_image" style="display: none;" /></p>
+                <p><input type="button" id="crop_btn" value="画像をトリミングして送信" /></p>
+            </div>
+            <p>トリミング結果が下記に表示されます。</p>
+            <p>例ではAjaxにて送信済みでので、下記機能に特に意味がありません。</p>
+            <p>（結果表示したところですでに送信済みですので。）</p>
+            <p>Cropper.jsそのものに画像操作は<a href="https://fengyuanchen.github.io/cropper/" target="_blank">https://fengyuanchen.github.io/cropper/</a></p>
+            
+        </main>
+        <div id="result"></div>
     </body>
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js" charset="UTF-8"></script>
+    <script type="text/javascript" src="dist/cropper.js" charset="UTF-8"></script>
+    <script type="text/javascript">
+
+        var idArray = [];
+        window.onload = function() {
+            fetch('/api').then( (res) => res.json() ).then( (d) => {
+                console.log(d);
+                let directory = "<h1>名鑑</h1><table><tr><td><h2>名前</h2></td><td><h2>特技</h2></td></tr>";
+                let i = 0;
+                //for (const d of data) {
+                    // directory += "<tr><td><h2>名前</h2></td><td><h2>特技</h2></td></tr>";
+                    directory += "<tr><td><input type='text' name='accountid' value=" + d.id + "/><input type='button' id='crop_btn_id" + i + "' value='画像をトリミングして送信' /></td><td>" + d.displayName + "</td><td><img src='" + d.photos[0].value + "'></td></tr>";
+                    idArray.push(d._id);
+                    ++i;
+                //}
+                directory += "</table>";
+                document.getElementById("directory").innerHTML = directory;
+            });
+        }
+
+        /**
+         * 丸くトリミングするために必要な関数です。
+         * キャンバスの画像を円形に座標計算し、切り取って返しています。
+         */
+        function getRoundedCanvas(sourceCanvas) {
+            var canvas = document.createElement('canvas');
+            var context = canvas.getContext('2d');
+            var width = sourceCanvas.width;
+            var height = sourceCanvas.height;
+
+            canvas.width = width;
+            canvas.height = height;
+            context.imageSmoothingEnabled = true;
+            context.drawImage(sourceCanvas, 0, 0, width, height);
+            context.globalCompositeOperation = 'destination-in';
+            context.beginPath();
+            context.arc(width / 2, height / 2, Math.min(width, height) / 2, 0, 2 * Math.PI, true);
+            context.fill();
+            return canvas;
+        }
+
+        $(function(){
+            $('#triming_image').on('change', function(event){
+                var trimingImage = event.target.files;
+
+                // imageタグは1つしかファイルを送信できない仕組みと複数送信する仕組みの二通りありますので、サーバー側でチェックを忘れないようにしてください。
+                if(trimingImage.length > 1){
+                    console.log(trimingImage.length + 'つのファイルが選択されました。');
+                    return false;
+                }
+                // 改め代入します。
+                trimingImage = trimingImage[0];
+
+                // 画像のチェックを行いますが、あくまでjsでのチェックなのでサーバーサイドでもう一度チェックを行ってください。
+                if(!trimingImage.type.match('image/jp.*') // jpg jpeg でない
+                 &&!trimingImage.type.match('image/png') // png でない
+                 &&!trimingImage.type.match('image/gif') // gif でない
+                 &&!trimingImage.type.match('image/bmp') // bmp でない
+                ){
+                    alert('No Support ' + trimingImage.type + ' type image');
+                    $(this).val('');
+                    return false;
+                }
+
+                var fileReader = new FileReader();
+                fileReader.onload = function(e){
+                    var int32View = new Uint8Array(e.target.result);
+                    // see https://en.wikipedia.org/wiki/List_of_file_signatures
+                    // ファイルのヘッダを参照し、マイムタイプを疑似的に取得します。フレームワークによってはもっと簡単に正確に読めるものもあります。
+                    // 下記は厳しい設定です。正規の手順を踏んでもアップロードできないカメラなどがあります。
+                    // （私の環境ではアクションカメラの写真などは下記に引っ掛かりました。）
+                    if((int32View.length>4 && int32View[0]==0xFF && int32View[1]==0xD8 && int32View[2]==0xFF && int32View[3]==0xE0)
+                    || (int32View.length>4 && int32View[0]==0xFF && int32View[1]==0xD8 && int32View[2]==0xFF && int32View[3]==0xDB)
+                    || (int32View.length>4 && int32View[0]==0xFF && int32View[1]==0xD8 && int32View[2]==0xFF && int32View[3]==0xD1)
+                    || (int32View.length>4 && int32View[0]==0x89 && int32View[1]==0x50 && int32View[2]==0x4E && int32View[3]==0x47)
+                    || (int32View.length>4 && int32View[0]==0x47 && int32View[1]==0x49 && int32View[2]==0x46 && int32View[3]==0x38)
+                    || (int32View.length=2 && int32View[0]==0x42 && int32View[1]==0x4D && int32View[2]==0x46 && int32View[3]==0x38)
+                    ){ 
+                        // success
+                        $('#trimed_image').css('display', 'block');
+                        $('#trimed_image').attr('src', URL.createObjectURL(trimingImage));
+                        return true;
+                    } else {
+                        // failed
+                        alert('No Support ' + trimingImage.type + ' type image');
+                        // exeファイルのアップロードを考えると下記よりもいいプラクティスがある可能性があります。
+                        $('#trimed_image').val('');
+                        return false;
+                    }
+                };
+                fileReader.readAsArrayBuffer(trimingImage);
+
+                fileReader.onloadend = function(e){
+                    var image = document.getElementById('trimed_image');
+
+                    var btnArray = [];
+                    for (let i = 0; i < idArray.length; ++i) {
+                        btnArray.push({ btn: document.getElementById('crop_btn_id' + i), id: idArray[i]});
+                    }
+                    var croppable = false;
+                    var cropper = new Cropper(image, {
+                        aspectRatio: 1,
+                        viewMode: 1,
+                        ready: function () {
+                            croppable = true;
+                        },
+                    });
+
+                    // fileReaderが完了した後にボタンクリックイベントを作成する必要があります。
+
+                let i = 0;
+                for (const button of btnArray) {
+                    button.btn.onclick = function () {
+                        console.log(button.id);
+                        var croppedCanvas;
+
+                        if (!croppable) {
+                            alert('トリミングする画像が設定されていません。');
+                            return false;
+                        }
+
+                        // cropper.jsに用意されている機能です。
+                        croppedCanvas = cropper.getCroppedCanvas();
+                        // 下記toBlob関数はブラウザによって名前が違います。
+                        var blob;
+                        if(croppedCanvas.toBlob){
+                            croppedCanvas.toBlob(function(blob){
+                                var trimedImageForm = new FormData();
+                                trimedImageForm.append('blob', blob);
+                                trimedImageForm.append('accountid', button.id);
+                                // この例ではAjaxにて送信します。
+                                $.ajax({
+                                    url: '/imgupload', // POST送信先
+                                    type: 'post',
+                                    processData: false,
+                                    contentType: false,
+                                    data: trimedImageForm,
+                                }).done(function( jsonResponse ){
+                                    console.log(jsonResponse);
+                                    // var responese = jsonResponse.json();
+//                                    var responese = $.parseJSON(jsonResponse);
+                                    if(jsonResponse.status == 'success'){
+                                        console.log(jsonResponse);
+                                        document.getElementById("main").innerHTML = "";
+                                    }else if(jsonResponse.status == 'error'){
+                                        alert('画像作成に失敗しました。再度お試しください。\n' + jsonResponse.msg);
+                                    }else{
+                                        alert('システムエラーが発生しました。');
+                                    }
+                                }).fail(function( responese ) {
+                                    alert('システムエラーが発生しました。');
+                                    // フレームワークによってはサーバーエラーをjsonで返してくれます。
+                                    var responese = $.parseJSON(jsonResponse);
+                                });
+                            });
+                        }else if(croppedCanvas.msToBlob){
+                            blob = croppedCanvas.msToBlob();
+                            var trimedImageForm = new FormData();
+                            trimedImageForm.append('blob', blob);
+                            // この例ではAjaxにて送信します。
+                            $.ajax({
+                                url: '/imgupload', // POST送信先
+                                type: 'post',
+                                processData: false,
+                                contentType: false,
+                                data: trimedImageForm,
+                            }).done(function( jsonResponse ){
+                                var responese = $.parseJSON(jsonResponse);
+                                if(responese.status == 'success'){
+                                    console.log(responese);
+                                    alert('アップロードしました。');
+                                }else if(responese.status == 'error'){
+                                    alert('画像作成に失敗しました。再度お試しください。\n' + responese.msg);
+                                }else{
+                                    alert('システムエラーが発生しました。');
+                                }
+                            }).fail(function( responese ) {
+                                alert('システムエラーが発生しました。');
+                                // フレームワークによってはサーバーエラーをjsonで返してくれます。
+                                var responese = $.parseJSON(jsonResponse);
+                            });
+                        }else{
+                            // これは少しわからないです。申し訳ない。
+                            imageURL = canvas.toDataURL();
+                        }
+
+                        // 画面にトリミング結果を出力する場合は下記が必要です。
+                        // 例ではAjaxにて送信済みでので、下記機能に特に意味がありません。（結果表示したところですでに送信済みですので。）
+                        var result = document.getElementById('result');
+                        var roundedImage;
+                        roundedCanvas = getRoundedCanvas(croppedCanvas);
+                        roundedImage = document.createElement('img');
+                        roundedImage.src = roundedCanvas.toDataURL()
+                        roundedImage.name = 'trimed';
+                        roundedImage.id = 'trimed';
+                        result.innerHTML = '';
+                        result.appendChild(roundedImage);
+                    };
+                    i++;
+                }
+                };
+            });
+        });
+    </script> 
 </html>

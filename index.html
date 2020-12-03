@@ -32,7 +32,7 @@
                     let directory = "<h1>名鑑</h1><table><tr><td><h2>名前</h2></td><td><h2>特技</h2></td></tr>";
                     for (const d of data) {
                         // directory += "<tr><td><h2>名前</h2></td><td><h2>特技</h2></td></tr>";
-                        directory += "<tr><td>" + d.name + "</td><td>" + d.can + "</td></tr>";
+                        directory += "<tr><td>" + d.name + "</td><td>" + d.imgpath + "</td></tr>";
                     }
                     directory += "</table>";
                     document.getElementById("directory").innerHTML = directory;
@@ -42,6 +42,14 @@
     </head>
     <body>
         <div id="wrapper">
+            <form action="/auth/facebook" method="get" >
+                <h1>facebook login</h1>
+                <table>
+                    <tr>
+                        <td><button type="submit">facebook login</button></td>
+                    </tr>
+                </table>
+            </form>
             <form action="/home" method="post" id="loginform">
                 <h1>login</h1>
                 <table>
