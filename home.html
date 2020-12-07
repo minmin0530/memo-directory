@@ -3,6 +3,7 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="style.css">
         <link rel="stylesheet" href="dist/cropper.css" charset="UTF-8">
         <title>Cropper Sample</title>
         <style>
@@ -32,14 +33,15 @@
         </style>
     </head>
     <body>
+<!--
         <form action="/regist" method="post">
             名前<input type="text" id="name" name="name"><br>
             特技<input type="text" id="can" name="can"><br>
             <button type="submit">登録</button>
         </form>
-
+-->
         <div id="directory"></div>
-
+<!--
         <main id="main">
             <h1>Cropper Sample</h1>
             <p>ここでのサンプルはTwitterアイコン風に丸型とします。</p>
@@ -57,6 +59,7 @@
             
         </main>
         <div id="result"></div>
+-->
     </body>
     <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js" charset="UTF-8"></script>
     <script type="text/javascript" src="dist/cropper.js" charset="UTF-8"></script>
@@ -64,16 +67,17 @@
 
         var idArray = [];
         window.onload = function() {
-            fetch('/api').then( (res) => res.json() ).then( (d) => {
-                console.log(d);
-                let directory = "<h1>名鑑</h1><table><tr><td><h2>名前</h2></td><td><h2>特技</h2></td></tr>";
+            fetch('/api').then( (res) => res.json() ).then( (data) => {
+                console.log(data);
+                let directory = "<h1>名鑑</h1><table>";
                 let i = 0;
-                //for (const d of data) {
+                for (const d of data) {
                     // directory += "<tr><td><h2>名前</h2></td><td><h2>特技</h2></td></tr>";
-                    directory += "<tr><td><input type='text' name='accountid' value=" + d.id + "/><input type='button' id='crop_btn_id" + i + "' value='画像をトリミングして送信' /></td><td>" + d.displayName + "</td><td><img src='" + d.photos[0].value + "'></td></tr>";
-                    idArray.push(d._id);
-                    ++i;
-                //}
+                    // "<tr><td><input type='text' name='accountid' value=" + d.id + "/><input type='button' id='crop_btn_id" + i + "' value='画像をトリミングして送信' /></td>"
+                    directory += "<tr><td>" + d.displayname + "</td><td><img src='" + d.photo + "'></td></tr>";
+                    //idArray.push(d._id);
+                    //++i;
+                }
                 directory += "</table>";
                 document.getElementById("directory").innerHTML = directory;
             });
@@ -83,6 +87,8 @@
          * 丸くトリミングするために必要な関数です。
          * キャンバスの画像を円形に座標計算し、切り取って返しています。
          */
+
+        /*
         function getRoundedCanvas(sourceCanvas) {
             var canvas = document.createElement('canvas');
             var context = canvas.getContext('2d');
@@ -262,5 +268,6 @@
                 };
             });
         });
+        */
     </script> 
 </html>

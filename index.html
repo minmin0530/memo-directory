@@ -6,6 +6,7 @@
         <link rel="stylesheet" href="style.css">
         <script>
             window.onload = function() {
+                /*
                 document.getElementById("searchbutton").addEventListener('click', () => {
                         fetch('/search', {
                               method: 'POST', // or 'PUT'
@@ -37,12 +38,14 @@
                     directory += "</table>";
                     document.getElementById("directory").innerHTML = directory;
                 });
+                */
             }
         </script>
     </head>
     <body>
         <div id="wrapper">
             <form action="/auth/facebook" method="get" >
+                <h1>メモ魔名鑑</h1>
                 <h1>facebook login</h1>
                 <table>
                     <tr>
@@ -50,6 +53,7 @@
                     </tr>
                 </table>
             </form>
+            <!--
             <form action="/home" method="post" id="loginform">
                 <h1>login</h1>
                 <table>
@@ -75,6 +79,7 @@
                     </tr>
                 </table>
             </div>
+            -->
         </div>
     </body>
 </html>

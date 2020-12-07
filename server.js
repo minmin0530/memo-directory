@@ -71,7 +71,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 
 const url = 'mongodb://localhost:27017';
-const dbName = 'memomongo';
+const dbName = 'memomongo001';
 const connectOption = {
     useNewUrlParser: true,
     useUnifiedTopology: true,
@@ -113,8 +113,8 @@ app.get('/auth/facebook/callback',
 　//処理が失敗した時のリダイレクト先の設定
   passport.authenticate('facebook', {failureRedirect: '/loginerror' }),
   function(req, res) {
-    console.log("!!!!!!!!!!!!!!!!!!!!!!!");
-    console.log(req);
+    // console.log("!!!!!!!!!!!!!!!!!!!!!!!");
+    // console.log(req);
     //処理が成功した時のリダイレクト先の設定
     res.redirect('/home');
   });
@@ -216,16 +216,40 @@ const regist = async (res, data) => {
 //      client.close();
     }
 }
-const download = async (req, res) => {
+
+const registFBUser = async (data, res) => {
+  let client;
+  try {
+    client = await MongoClient.connect(url, connectOption);
+    const db = client.db(dbName);
+    const collection = db.collection('fbuser');
+
+    const a = await collection.updateOne({fbid:data.fbid}, {$set:data}, true );
+    if (a.result.n == 0) {
+      const b = await collection.insertOne(data);
+    }
+    console.log("FBUser Success!!");  
+  } catch (error) {
+    console.log(error);
+  } finally {
+//      client.close();
+  }
+
+}
+
+const download = async (data, res) => {
     console.log("download");
     let client;
     try {
       client = await MongoClient.connect(url, connectOption);
       const db = client.db(dbName);
-      const collection = db.collection('directory');
+      const collection = db.collection('fbuser');
   
       const a = await collection.find({}).toArray();
-      await res.json(req.user);
+      await registFBUser(data, res);
+
+      a.push(data);
+      await res.json(a);
     } catch (error) {
       console.log(error);
     } finally {
@@ -237,7 +261,7 @@ app.get('/dist/cropper.js', (req, res) => { res.sendFile(__dirname + "/dist/crop
 app.get('/dist/cropper.css', (req, res) => { res.sendFile(__dirname + "/dist/cropper.css"); });
 app.get('/style.css', (req, res) => { res.sendFile(__dirname + "/style.css"); });
 app.get('/api', (req, res) => {
-    download(req, res);
+    download({fbid:req.user.id, displayname:req.user.displayName, photo:req.user.photos[0].value}, res);
 });
 app.post('/regist', (req, res) => {
     console.log(req.body.name);
